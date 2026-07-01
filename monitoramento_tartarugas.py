@@ -65,7 +65,7 @@ def obter_clima_regiao(regiao: str) -> dict:
             }
         except:
             pass
-    # Mock para testes
+    # Mock
     mock = {
         'Praia Sul': {'temperatura': 23.0, 'precipitacao': 8.0, 'vento': 35},
     }
@@ -79,66 +79,66 @@ def atualizar_risco_por_clima(lista_ninhos: list):
             ninho['risco'] = '🔴'
             ninho['status'] = 'ameaçado'
 
-# --- Funções de Gerenciamento de Ninhos --- #
+# --- Funções de Validação --- #
 def validar_ninho(ninho: dict) -> tuple:
-    """Valida os dados de um ninho."""
+    """Valida os dados de um ninho de tartaruga."""
     if not isinstance(ninho.get('regiao'), str) or not ninho.get('regiao'):
-        return False, "Região inválida."
-    if not isinstance(ninho.get('quantidade_ovos'), int) or ninho['quantidade_ovos'] < 0:
-        return False, "Quantidade de ovos inválida."
-    return True, "Válido"
+        return False, "Região inválida. Deve ser uma string não vazia."
+    if not isinstance(ninho.get('quantidade_ovos'), int) or ninho.get('quantidade_ovos') <= 0:
+        return False, "Quantidade de ovos inválida. Deve ser um número inteiro positivo."
+    if ninho.get('status') not in ['intacto', 'ameaçado', 'danificado']:
+        return False, "Status inválido. Use 'intacto', 'ameaçado' ou 'danificado'."
+    if ninho.get('risco') not in ['🟢', '🟡', '🔴']:
+        return False, "Risco inválido. Use 🟢, 🟡 ou 🔴."
+    if not isinstance(ninho.get('dias_para_eclosao'), int) or ninho.get('dias_para_eclosao') < 0:
+        return False, "Dias para eclosão inválidos. Deve ser um número inteiro não negativo."
+    if not isinstance(ninho.get('predadores'), bool):
+        return False, "Presença de predadores inválida. Use True ou False."
+    return True, "Ninho válido."
 
-def inserir_novo_ninho(lista_ninhos: list):
-    """Permite ao usuário inserir um novo ninho."""
-    print("\n--- Inserir Novo Ninho ---")
-    regiao = input("Nome da Praia/Região: ").strip()
-    try:
-        ovos = int(input("Quantidade de ovos: "))
-        dias = int(input("Dias para eclosão: "))
-        predadores = input("Predadores detectados? (s/n): ").lower() == 's'
-        
-        novo_ninho = {
-            'regiao': regiao,
-            'quantidade_ovos': ovos,
-            'status': 'intacto',
-            'risco': '🟢',
-            'dias_para_eclosao': dias,
-            'predadores': predadores
-        }
-        
-        valido, msg = validar_ninho(novo_ninho)
-        if valido:
-            lista_ninhos.append(novo_ninho)
-            print(f"Ninho em {regiao} adicionado com sucesso!")
-        else:
-            print(f"Erro: {msg}")
-    except ValueError:
-        print("Erro: Insira valores numéricos válidos.")
+# --- Funções de Análise de Dados --- #
+def obter_total_ninhos(lista_ninhos: list) -> int:
+    """Retorna o número total de ninhos registrados."""
+    return len(lista_ninhos)
 
-def visualizar_relatorio_completo(lista_ninhos: list):
-    """Exibe todos os ninhos monitorados."""
-    print("\n--- Relatório de Monitoramento ---")
-    print(f"{'Região':<20} | {'Ovos':<5} | {'Status':<10} | {'Risco':<5} | {'Eclosão':<7}")
-    print("-" * 60)
+def calcular_media_ovos_por_risco(lista_ninhos: list, risco_alvo: str) -> float:
+    """Calcula a média de ovos para ninhos com um risco específico."""
+    total_ovos = 0
+    ninhos_com_risco = 0
     for ninho in lista_ninhos:
-        print(f"{ninho['regiao']:<20} | {ninho['quantidade_ovos']:<5} | {ninho['status']:<10} | {ninho['risco']:<5} | {ninho['dias_para_eclosao']:<7} dias")
+        if ninho['risco'] == risco_alvo:
+            total_ovos += ninho['quantidade_ovos']
+            ninhos_com_risco += 1
+    return total_ovos / ninhos_com_risco if ninhos_com_risco > 0 else 0.0
 
-def consultar_estatisticas(lista_ninhos: list):
-    """Exibe estatísticas básicas sobre os ninhos."""
-    if not lista_ninhos:
-        print("Nenhum dado disponível.")
-        return
-    total_ovos = sum(n['quantidade_ovos'] for n in lista_ninhos)
-    media_ovos = total_ovos / len(lista_ninhos)
-    ameaçados = sum(1 for n in lista_ninhos if n['risco'] in ['🟡', '🔴'])
-    
-    print("\n--- Estatísticas ---")
-    print(f"Total de ninhos: {len(lista_ninhos)}")
-    print(f"Total de ovos monitorados: {total_ovos}")
-    print(f"Média de ovos por ninho: {media_ovos:.2f}")
-    print(f"Ninhos em risco/ameaçados: {ameaçados}")
+def contar_ninhos_prestes_a_eclodir(lista_ninhos: list, dias_limite: int = 5) -> int:
+    """Conta quantos ninhos estão prestes a eclodir."""
+    count = 0
+    for ninho in lista_ninhos:
+        if ninho['dias_para_eclosao'] <= dias_limite:
+            count += 1
+    return count
 
-# --- Menu Principal --- #
+def encontrar_regiao_mais_risco(lista_ninhos: list) -> str:
+    """Identifica a região com o maior número de ninhos sob risco '🔴'."""
+    risco_por_regiao = {}
+    for ninho in lista_ninhos:
+        if ninho['risco'] == '🔴':
+            regiao = ninho['regiao']
+            risco_por_regiao[regiao] = risco_por_regiao.get(regiao, 0) + 1
+    if not risco_por_regiao:
+        return "Nenhuma região com ninhos sob risco '🔴'."
+    return max(risco_por_regiao, key=risco_por_regiao.get)
+
+def contar_ninhos_predadores_danificados(lista_ninhos: list) -> int:
+    """Conta ninhos que têm predadores E estão danificados."""
+    count = 0
+    for ninho in lista_ninhos:
+        if ninho['predadores'] and ninho['status'] == 'danificado':
+            count += 1
+    return count
+
+# --- Funções de Interação com o Usuário --- #
 def exibir_menu():
     print("\n--- Menu Guardião das Tartaruguinhas ---")
     print("1. Inserir novo ninho")
@@ -147,10 +147,59 @@ def exibir_menu():
     print("4. Atualizar riscos com clima")
     print("5. Sair")
 
+def inserir_novo_ninho(lista_ninhos: list):
+    print("\n--- Inserir Novo Ninho ---")
+    try:
+        regiao = input("Região: ")
+        quantidade_ovos = int(input("Quantidade de ovos: "))
+        status = input("Status (intacto, ameaçado, danificado): ")
+        risco = input("Risco (🟢, 🟡, 🔴): ")
+        dias_para_eclosao = int(input("Dias para eclosão: "))
+        predadores_str = input("Predadores (True/False): ")
+        predadores = predadores_str.lower() == 'true'
+
+        novo_ninho = {
+            'regiao': regiao,
+            'quantidade_ovos': quantidade_ovos,
+            'status': status,
+            'risco': risco,
+            'dias_para_eclosao': dias_para_eclosao,
+            'predadores': predadores
+        }
+
+        valido, mensagem = validar_ninho(novo_ninho)
+        if valido:
+            lista_ninhos.append(novo_ninho)
+            print("Ninho adicionado com sucesso!")
+        else:
+            print(f"Erro ao adicionar ninho: {mensagem}")
+    except ValueError:
+        print("Entrada inválida. Certifique-se de inserir números para ovos e dias, e True/False para predadores.")
+
+def visualizar_relatorio_completo(lista_ninhos: list):
+    print("\n--- Relatório Completo ---")
+    if not lista_ninhos:
+        print("Nenhum ninho registrado.")
+    else:
+        for i, ninho in enumerate(lista_ninhos):
+            print(f"Ninho {i+1}:")
+            for chave, valor in ninho.items():
+                print(f" {chave.replace('_', ' ').title()}: {valor}")
+            print("-" * 20)
+
+def consultar_estatisticas(lista_ninhos: list):
+    print("\n--- Estatísticas ---")
+    print(f"Total de ninhos: {obter_total_ninhos(lista_ninhos)}")
+    print(f"Média de ovos por ninho com risco '🟢': {calcular_media_ovos_por_risco(lista_ninhos, '🟢'):.2f}")
+    print(f"Ninhos prestes a eclodir (<= 5 dias): {contar_ninhos_prestes_a_eclodir(lista_ninhos)}")
+    print(f"Região com mais ninhos sob risco '🔴': {encontrar_regiao_mais_risco(lista_ninhos)}")
+    print(f"Ninhos com predadores e danificados: {contar_ninhos_predadores_danificados(lista_ninhos)}")
+
+# --- Menu Principal --- #
 def menu_principal():
     while True:
         exibir_menu()
-        escolha = input("Escolha (1-5): ").strip()
+        escolha = input("Escolha uma opção (ou 'sair' para encerrar): ").lower().strip()
         if escolha == '1':
             inserir_novo_ninho(ninhos)
         elif escolha == '2':
@@ -160,8 +209,8 @@ def menu_principal():
         elif escolha == '4':
             atualizar_risco_por_clima(ninhos)
             print("Riscos atualizados com base no clima atual!")
-        elif escolha == '5':
-            print("Encerrando sistema. Proteja as tartarugas! 🐢")
+        elif escolha == '5' or escolha == 'sair':
+            print("Saindo do sistema. Proteja as tartarugas! 🐢")
             break
         else:
             print("Opção inválida.")
